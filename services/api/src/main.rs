@@ -6,6 +6,8 @@ use serde::Serialize;
 use std::{net::Ipv4Addr, time::Duration};
 use tokio::net::TcpListener;
 
+const RELEASE_REVISION: &str = include_str!("../release-revision.txt");
+
 #[derive(Serialize)]
 struct Health {
     status: &'static str,
@@ -20,7 +22,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .timeout(Duration::from_secs(3))
         .build()?;
     let router = Router::new()
-        .route("/health", get(|| async { Json(Health { status: "ok" }) }))
+        .route(
+            "/health",
+            get(|| async {
+                (
+                    [
+                        ("Cache-Control", "no-store"),
+                        ("X-Release-Revision", RELEASE_REVISION.trim()),
+                    ],
+                    Json(Health { status: "ok" }),
+                )
+            }),
+        )
         .route("/api/v1/park-waits", get(park_waits::get_public_waits))
         .with_state(client);
 

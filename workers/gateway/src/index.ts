@@ -15,14 +15,14 @@ interface Env {
   PARK_DATA: D1Database;
   LOCAL_SAMPLE_PREVIEW?: string;
   WAIT_DATA_SOURCE?: string;
+  SHOW_STAGING_LABEL?: string;
 }
 
 async function fetchWaits(request: Request, env: Env): Promise<Response> {
   if (env.PARK_API) {
-    const headers = new Headers(request.headers);
-    headers.set('X-Request-Id', crypto.randomUUID());
+    const headers = { 'X-Request-Id': crypto.randomUUID() };
     return getContainer(env.PARK_API, 'public-waits').fetch(
-      new Request(request, { headers }),
+      new Request(request.url, { method: request.method, headers }),
     );
   }
   const url = new URL(request.url);
@@ -67,12 +67,24 @@ export default {
     let response: Response;
     const sampleApi =
       url.pathname === '/api/v1/park-waits' && env.WAIT_DATA_SOURCE !== liveSource;
-    if (sampleApi || url.pathname === '/health') {
+    if (url.pathname === '/health/live') {
+      const headers = { 'Cache-Control': 'no-store', Allow: 'GET, HEAD' };
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        response = new Response(null, { status: 405, headers });
+      } else if (url.search) {
+        response = new Response(null, { status: 400, headers });
+      } else if (request.method === 'HEAD') {
+        response = new Response(null, { headers });
+      } else {
+        response = Response.json({ status: 'ok' }, { headers });
+      }
+    } else if (sampleApi || url.pathname === '/health') {
       response = await fetchWaits(request, env);
     } else if (url.pathname === '/') {
       const context = new RouterContextProvider();
       context.set(waitRequestContext, {
         nonce,
+        staging: env.SHOW_STAGING_LABEL === 'true',
         loadWaits: () =>
           fetchWaits(new Request(new URL('/api/v1/park-waits', url)), env),
       });

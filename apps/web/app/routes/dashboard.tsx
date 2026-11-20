@@ -54,6 +54,7 @@ type DashboardData =
       rides: Ride[];
       totalRides: number;
       live?: WaitSnapshot['live'];
+      staging: boolean;
     }
   | { state: 'invalid' | 'unavailable' };
 
@@ -72,8 +73,9 @@ export async function loader({
   context,
 }: LoaderFunctionArgs): Promise<ReturnType<typeof data<DashboardData>>> {
   let snapshot: WaitSnapshot;
+  const waitContext = context.get(waitRequestContext);
   try {
-    const response = await context.get(waitRequestContext).loadWaits();
+    const response = await waitContext.loadWaits();
     if (!response.ok) throw new Error('Wait API returned an error');
     snapshot = parseWaitSnapshot(await response.json());
   } catch {
@@ -92,6 +94,7 @@ export async function loader({
     rides: filterRides(snapshot.rides, filters),
     totalRides: snapshot.rides.length,
     live: snapshot.live,
+    staging: waitContext.staging,
   });
 }
 
@@ -144,6 +147,7 @@ export default function Dashboard(): ReactNode {
           </nav>
           <span className={styles['sample-badge']}>
             <span className={styles.dot} aria-hidden="true" />{' '}
+            {dashboard.staging ? 'Staging · ' : ''}
             {live ? freshnessLabels[live.freshness] : 'Sample data'}
           </span>
         </div>

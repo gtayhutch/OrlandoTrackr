@@ -36,8 +36,11 @@ hosts the web app, API, database, scheduled jobs, and audit log storage.
 | Environment | Git branch   | Where it runs                                                |
 | ----------- | ------------ | ------------------------------------------------------------ |
 | Test        | `test`       | Local Wrangler and Docker, or an isolated GitHub Actions job |
-| Staging     | `staging`    | Dedicated staging Cloudflare account                         |
-| Production  | `production` | Dedicated production Cloudflare account                      |
+| Staging     | `staging`    | Dedicated staging Worker and resources in Cloudflare Main    |
+| Production  | `production` | Dedicated production Worker and resources in Cloudflare Main |
 
 Promote by pull request from `test` through `staging` to `production`.
 The owner authorizes each production release.
+
+Use `/health/live` for uptime monitoring. `/health` starts Axum if necessary
+and reports the running container's release revision.
