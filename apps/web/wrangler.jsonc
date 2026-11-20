@@ -6,6 +6,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
+  "vars": { "WAIT_DATA_SOURCE": "sample" },
+  "triggers": { "crons": ["*/5 * * * *"] },
   "containers": [
     {
       "class_name": "ParkApi",
@@ -27,4 +29,58 @@
       "remote": false,
     },
   ],
+  "env": {
+    "staging": {
+      "name": "orlandotrackr-staging",
+      "account_id": "9fe808d792b2aa8f095351f40b89c3eb",
+      "vars": { "WAIT_DATA_SOURCE": "sample", "SHOW_STAGING_LABEL": "true" },
+      "containers": [
+        {
+          "name": "orlandotrackr-staging-parkapi",
+          "class_name": "ParkApi",
+          "image": "../../Dockerfile",
+          "instance_type": "basic",
+          "max_instances": 1,
+        },
+      ],
+      "durable_objects": {
+        "bindings": [{ "name": "PARK_API", "class_name": "ParkApi" }],
+      },
+      "d1_databases": [
+        {
+          "binding": "PARK_DATA",
+          "database_name": "orlandotrackr-staging",
+          "database_id": "504f9cf8-a147-48d4-bcaf-d6c7c4923970",
+          "migrations_dir": "../../workers/gateway/migrations",
+          "remote": false,
+        },
+      ],
+    },
+    "production": {
+      "name": "orlandotrackr-production",
+      "account_id": "9fe808d792b2aa8f095351f40b89c3eb",
+      "vars": { "WAIT_DATA_SOURCE": "themeparks-wiki" },
+      "containers": [
+        {
+          "name": "orlandotrackr-production-parkapi",
+          "class_name": "ParkApi",
+          "image": "../../Dockerfile",
+          "instance_type": "basic",
+          "max_instances": 1,
+        },
+      ],
+      "durable_objects": {
+        "bindings": [{ "name": "PARK_API", "class_name": "ParkApi" }],
+      },
+      "d1_databases": [
+        {
+          "binding": "PARK_DATA",
+          "database_name": "orlandotrackr-production",
+          "database_id": "5cdbcff8-0fb6-49ed-aa9c-d723414348f8",
+          "migrations_dir": "../../workers/gateway/migrations",
+          "remote": false,
+        },
+      ],
+    },
+  },
 }

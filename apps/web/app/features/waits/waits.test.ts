@@ -82,11 +82,39 @@ describe('wait response schema', () => {
     });
   });
 
+  const live = {
+    parks: PARKS,
+    rides: RIDES,
+    source: 'themeparks-wiki',
+    freshness: 'cached',
+  };
+
+  it('accepts live rides and cache metadata', () => {
+    const rides = RIDES.map((ride) => ({ ...ride, kind: 'Ride' }));
+    expect(parseWaitSnapshot({ data: { ...live, rides, updatedAt: 42 } })).toEqual({
+      parks: PARKS,
+      rides,
+      live: { freshness: 'cached', updatedAt: 42 },
+    });
+  });
+
+  it('accepts an empty live cache without an observation timestamp', () => {
+    const snapshot = parseWaitSnapshot({
+      data: { ...live, freshness: 'unavailable', rides: [] },
+    });
+    expect(snapshot.live).toEqual({ freshness: 'unavailable', updatedAt: null });
+  });
+
   it.each([
     [null],
     [[]],
     [{ data: [] }],
     [{ data: { parks: [], rides: [], surplus: true } }],
+    [{ data: { ...live, freshness: 'old' } }],
+    [{ data: { ...live, updatedAt: 'yesterday' } }],
+    [{ data: { ...live, updatedAt: 1.5 } }],
+    [{ data: { ...live, updatedAt: -1 } }],
+    [{ data: { ...live, updatedAt: 8.7e15 } }],
     [{ data: { parks: {}, rides: [] } }],
     [{ data: { parks: [], rides: null } }],
     [{ data: { parks: [{ id: 'p', name: null, locality: 'x' }], rides: [] } }],

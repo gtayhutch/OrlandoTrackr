@@ -67,6 +67,21 @@ test('serves the public board without JavaScript', async ({ browser, baseURL }) 
   await context.close();
 });
 
+test('serves Worker liveness with a bounded request contract', async ({ request }) => {
+  const live = await request.get('/health/live');
+  expect(live.status()).toBe(200);
+  expect(live.headers()['cache-control']).toBe('no-store');
+  expect(await live.json()).toEqual({ status: 'ok' });
+
+  const head = await request.head('/health/live');
+  expect(head.status()).toBe(200);
+  expect(await head.text()).toBe('');
+  expect((await request.get('/health/live?debug=true')).status()).toBe(400);
+  const post = await request.post('/health/live');
+  expect(post.status()).toBe(405);
+  expect(post.headers()['allow']).toBe('GET, HEAD');
+});
+
 test('keeps the data adapter private and returns the public response headers', async ({
   request,
 }) => {

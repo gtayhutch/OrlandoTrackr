@@ -23,6 +23,10 @@ integration for the Worker and Axum container path.
 Install Chromium with `pnpm exec playwright install chromium` and run
 `pnpm verify` for format, lint, types, builds, and tests.
 
+The live dashboard uses ThemeParks.wiki. Its Worker polls every five minutes
+when configured with `WAIT_DATA_SOURCE=themeparks-wiki`. The dashboard shows
+the latest available update and labels cached data during outages.
+
 ## Stack and environments
 
 React Router and TypeScript 7+ power the web app. Rust and Axum provide the API
@@ -32,8 +36,11 @@ hosts the web app, API, database, scheduled jobs, and audit log storage.
 | Environment | Git branch   | Where it runs                                                |
 | ----------- | ------------ | ------------------------------------------------------------ |
 | Test        | `test`       | Local Wrangler and Docker, or an isolated GitHub Actions job |
-| Staging     | `staging`    | Dedicated staging Cloudflare account                         |
-| Production  | `production` | Dedicated production Cloudflare account                      |
+| Staging     | `staging`    | Dedicated staging Worker and resources in Cloudflare Main    |
+| Production  | `production` | Dedicated production Worker and resources in Cloudflare Main |
 
 Promote by pull request from `test` through `staging` to `production`.
 The owner authorizes each production release.
+
+Use `/health/live` for uptime monitoring. `/health` starts Axum if necessary
+and reports the running container's release revision.

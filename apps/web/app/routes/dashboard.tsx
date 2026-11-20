@@ -27,6 +27,19 @@ const parksIcons = new Map([
   ['legoland', Blocks],
 ]);
 const minutesFormat = new Intl.NumberFormat('en-US');
+const updateFormat = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/New_York',
+  timeZoneName: 'short',
+});
+const freshnessLabels = {
+  current: 'Live waits',
+  cached: 'Cached waits',
+  unavailable: 'Waiting for updates',
+};
 
 interface ParkSummary extends Park {
   average: number | null;
@@ -40,6 +53,8 @@ type DashboardData =
       summaries: ParkSummary[];
       rides: Ride[];
       totalRides: number;
+      live?: WaitSnapshot['live'];
+      staging: boolean;
     }
   | { state: 'invalid' | 'unavailable' };
 
@@ -58,8 +73,9 @@ export async function loader({
   context,
 }: LoaderFunctionArgs): Promise<ReturnType<typeof data<DashboardData>>> {
   let snapshot: WaitSnapshot;
+  const waitContext = context.get(waitRequestContext);
   try {
-    const response = await context.get(waitRequestContext).loadWaits();
+    const response = await waitContext.loadWaits();
     if (!response.ok) throw new Error('Wait API returned an error');
     snapshot = parseWaitSnapshot(await response.json());
   } catch {
@@ -77,6 +93,8 @@ export async function loader({
     summaries,
     rides: filterRides(snapshot.rides, filters),
     totalRides: snapshot.rides.length,
+    live: snapshot.live,
+    staging: waitContext.staging,
   });
 }
 
@@ -100,7 +118,7 @@ export default function Dashboard(): ReactNode {
       </main>
     );
   }
-  const { filters, summaries, rides, totalRides } = dashboard;
+  const { filters, summaries, rides, totalRides, live } = dashboard;
   const parkNames = new Map(summaries.map((park) => [park.id, park.name]));
   const shortestPark = summaries
     .filter((park) => park.average !== null)
@@ -128,7 +146,9 @@ export default function Dashboard(): ReactNode {
             </a>
           </nav>
           <span className={styles['sample-badge']}>
-            <span className={styles.dot} aria-hidden="true" /> Sample data
+            <span className={styles.dot} aria-hidden="true" />{' '}
+            {dashboard.staging ? 'Staging · ' : ''}
+            {live ? freshnessLabels[live.freshness] : 'Sample data'}
           </span>
         </div>
       </header>
@@ -164,7 +184,7 @@ export default function Dashboard(): ReactNode {
             <span>
               <strong>{summaries.length} park groups</strong>
               <br />
-              {totalRides} sample attractions
+              {totalRides} {live ? 'attractions' : 'sample attractions'}
             </span>
           </div>
         </section>
@@ -222,7 +242,23 @@ export default function Dashboard(): ReactNode {
             <div className={styles['board-heading']}>
               <div>
                 <h2 id="board-title">Ride board</h2>
-                <p>Browse sample waits by park.</p>
+                <p>
+                  {live?.freshness === 'cached'
+                    ? 'Some waits may be out of date.'
+                    : live?.freshness === 'unavailable'
+                      ? 'Current waits will appear when the next update is available.'
+                      : 'Browse waits by park.'}
+                  {live?.updatedAt != null && (
+                    <>
+                      {' '}
+                      Data as of{' '}
+                      <time dateTime={new Date(live.updatedAt).toISOString()}>
+                        {updateFormat.format(live.updatedAt)}
+                      </time>
+                      .
+                    </>
+                  )}
+                </p>
               </div>
               <span>
                 {rides.length} {rides.length === 1 ? 'ride' : 'rides'}
@@ -329,7 +365,11 @@ export default function Dashboard(): ReactNode {
         </section>
 
         <footer className={styles.footer}>
-          <span>OrlandoTrackr · Synthetic wait-time snapshot</span>
+          {live ? (
+            <a href="https://www.themeparks.wiki/">Powered by ThemeParks.wiki</a>
+          ) : (
+            <span>OrlandoTrackr · Synthetic wait-time snapshot</span>
+          )}
           <span>
             Coaster photo by{' '}
             <a href="https://commons.wikimedia.org/wiki/File:Wild_One%27s_wooden_structure_silhouetted_at_sunset_at_Six_Flags_America,_July_2001_-_ThrillZing.jpg">
