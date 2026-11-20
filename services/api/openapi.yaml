@@ -7,6 +7,7 @@ paths:
     get:
       operationId: getParkWaits
       summary: Read the local sample park and attraction snapshot
+      description: Available in sample environments. The live website reads through its server.
       responses:
         '200':
           description: Sample public wait times
@@ -30,6 +31,8 @@ paths:
                           $ref: '#/components/schemas/Ride'
         '400':
           description: Unexpected query parameters
+        '404':
+          description: The sample endpoint is disabled
         '503':
           description: The wait snapshot is unavailable
 components:

@@ -1,16 +1,16 @@
-/** Park information attached to the synthetic public snapshot. */
+/** Park information attached to the public snapshot. */
 export interface Park {
   id: string;
   name: string;
   locality: string;
 }
 
-/** An attraction and its sample wait in minutes, or null when unavailable. */
+/** An attraction and its wait in minutes, or null when unavailable. */
 export interface Ride {
   id: string;
   parkId: string;
   name: string;
-  kind: 'Thrill' | 'Family' | 'Show';
+  kind: 'Thrill' | 'Family' | 'Show' | 'Ride';
   minutes: number | null;
 }
 
@@ -18,6 +18,10 @@ export interface Ride {
 export interface WaitSnapshot {
   parks: Park[];
   rides: Ride[];
+  live?: {
+    freshness: 'current' | 'cached' | 'unavailable';
+    updatedAt: number | null;
+  };
 }
 
 /** Controls the public ride list and its sort order. */

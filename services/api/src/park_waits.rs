@@ -35,13 +35,34 @@ enum RideKind {
     Thrill,
     Family,
     Show,
+    Ride,
 }
 
 #[derive(Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "kebab-case")]
+enum WaitSource {
+    ThemeparksWiki,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum Freshness {
+    Current,
+    Cached,
+    Unavailable,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Snapshot {
     parks: Vec<Park>,
     rides: Vec<Ride>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source: Option<WaitSource>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    freshness: Option<Freshness>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    updated_at: Option<u64>,
 }
 
 #[derive(Serialize)]

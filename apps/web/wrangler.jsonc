@@ -6,6 +6,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
+  "vars": { "WAIT_DATA_SOURCE": "sample" },
+  "triggers": { "crons": ["*/5 * * * *"] },
   "containers": [
     {
       "class_name": "ParkApi",

@@ -23,6 +23,10 @@ integration for the Worker and Axum container path.
 Install Chromium with `pnpm exec playwright install chromium` and run
 `pnpm verify` for format, lint, types, builds, and tests.
 
+The live dashboard uses ThemeParks.wiki. Its Worker polls every five minutes
+when configured with `WAIT_DATA_SOURCE=themeparks-wiki`. The dashboard shows
+the latest available update and labels cached data during outages.
+
 ## Stack and environments
 
 React Router and TypeScript 7+ power the web app. Rust and Axum provide the API

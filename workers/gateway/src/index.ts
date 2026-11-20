@@ -2,6 +2,8 @@ import { getContainer } from '@cloudflare/containers';
 import { createRequestHandler, RouterContextProvider } from 'react-router';
 import { waitRequestContext } from '~/request_context';
 import type { ParkApi } from './park_api';
+import { ingestWaits } from './ingest_waits';
+import { liveSource } from './live_wait_data';
 import { applySecurityHeaders } from './security_headers';
 import { readPublicParkWaits } from './park_data';
 
@@ -12,6 +14,7 @@ interface Env {
   PARK_API?: DurableObjectNamespace<ParkApi>;
   PARK_DATA: D1Database;
   LOCAL_SAMPLE_PREVIEW?: string;
+  WAIT_DATA_SOURCE?: string;
 }
 
 async function fetchWaits(request: Request, env: Env): Promise<Response> {
@@ -62,7 +65,9 @@ export default {
     const url = new URL(request.url);
     const nonce = crypto.randomUUID().replaceAll('-', '');
     let response: Response;
-    if (url.pathname === '/api/v1/park-waits' || url.pathname === '/health') {
+    const sampleApi =
+      url.pathname === '/api/v1/park-waits' && env.WAIT_DATA_SOURCE !== liveSource;
+    if (sampleApi || url.pathname === '/health') {
       response = await fetchWaits(request, env);
     } else if (url.pathname === '/') {
       const context = new RouterContextProvider();
@@ -81,5 +86,9 @@ export default {
     const headers = new Headers(response.headers);
     applySecurityHeaders(headers, nonce);
     return new Response(response.body, { status: response.status, headers });
+  },
+  async scheduled(controller: ScheduledController, env: Env): Promise<void> {
+    if (env.WAIT_DATA_SOURCE !== liveSource) return;
+    await ingestWaits(env.PARK_DATA, controller.scheduledTime);
   },
 } satisfies ExportedHandler<Env>;
