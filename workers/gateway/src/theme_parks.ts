@@ -137,7 +137,7 @@ export async function fetchLiveRides(
   const url = new URL('/v1/entity/' + destination.entityId + '/live', PROVIDER_ORIGIN);
   const response = await fetcher(url, {
     headers: { Accept: 'application/json' },
-    redirect: 'error',
+    redirect: 'manual',
     signal: AbortSignal.timeout(12_000),
   });
   if (!response.ok) {

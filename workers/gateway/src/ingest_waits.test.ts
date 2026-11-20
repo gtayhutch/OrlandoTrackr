@@ -116,6 +116,9 @@ describe('scheduled ingestion into local D1', () => {
       ingestWaits(database, START, feed),
     ]);
     expect(feed).toHaveBeenCalledTimes(4);
+    expect(feed.mock.calls.every(([, options]) => options?.redirect === 'manual')).toBe(
+      true,
+    );
     await ingestWaits(database, START + FIVE_MINUTES, feed);
     const initial = await database
       .prepare('SELECT count(*) AS count FROM live_wait_observations')
