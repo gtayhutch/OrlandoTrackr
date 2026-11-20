@@ -50,7 +50,7 @@ if (mode !== 'access-only') {
   do {
     const response = await request('/health', headers);
     const actualRevision = response.headers.get('x-release-revision');
-    await response.body?.cancel();
+    await response.text();
     assert(
       ![302, 401, 403].includes(response.status),
       'Access denied the release smoke check.',
