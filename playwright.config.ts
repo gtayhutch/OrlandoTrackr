@@ -20,6 +20,7 @@ export default defineConfig({
     {
       command:
         'pnpm --dir apps/web exec vite --host 127.0.0.1 --port 4176 --strictPort',
+      env: { ORLANDOTRACKR_E2E_DEV: 'true' },
       url: 'http://127.0.0.1:4176/health',
       reuseExistingServer: false,
       timeout: 180_000,
