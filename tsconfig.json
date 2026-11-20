@@ -1,0 +1,32 @@
+{
+  "include": [
+    "apps/web/app/**/*",
+    "apps/web/*.ts",
+    "apps/web/.react-router/types/**/*",
+    "workers/**/*.ts",
+    "tests/**/*.ts",
+    "*.ts"
+  ],
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["DOM", "DOM.Iterable", "ES2024"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "types": ["node", "vite/client", "@cloudflare/workers-types"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "paths": {
+      "~/*": ["./apps/web/app/*"],
+      "@gateway/*": ["./workers/gateway/src/*"]
+    },
+    "rootDirs": ["./apps/web", "./apps/web/.react-router/types"]
+  }
+}

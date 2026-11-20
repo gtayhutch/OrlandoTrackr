@@ -1,0 +1,10 @@
+docs/
+*.md
+!README.md
+pnpm-lock.yaml
+**/.react-router/
+**/.wrangler/
+**/build/
+**/target/
+Cargo.lock
+**/worker-configuration.d.ts

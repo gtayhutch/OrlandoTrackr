@@ -1,0 +1,19 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "orlandotrackr-test",
+  "main": "../../workers/gateway/src/index.ts",
+  "compatibility_date": "2026-11-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": { "LOCAL_SAMPLE_PREVIEW": "true" },
+  "d1_databases": [
+    {
+      "binding": "PARK_DATA",
+      "database_name": "orlandotrackr-test",
+      "database_id": "00000000-0000-4000-8000-000000000001",
+      "migrations_dir": "../../workers/gateway/migrations",
+      "remote": false,
+    },
+  ],
+}

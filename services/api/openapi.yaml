@@ -1,0 +1,54 @@
+openapi: 3.1.0
+info:
+  title: OrlandoTrackr public waits
+  version: 0.1.0
+paths:
+  /api/v1/park-waits:
+    get:
+      operationId: getParkWaits
+      summary: Read the local sample park and attraction snapshot
+      responses:
+        '200':
+          description: Sample public wait times
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [parks, rides]
+                    properties:
+                      parks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Park'
+                      rides:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Ride'
+        '400':
+          description: Unexpected query parameters
+        '503':
+          description: The wait snapshot is unavailable
+components:
+  schemas:
+    Park:
+      type: object
+      additionalProperties: false
+      required: [id, name, locality]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        locality: { type: string }
+    Ride:
+      type: object
+      additionalProperties: false
+      required: [id, parkId, name, kind, minutes]
+      properties:
+        id: { type: string }
+        parkId: { type: string }
+        name: { type: string }
+        kind: { enum: [Thrill, Family, Show] }
+        minutes: { type: [integer, 'null'], minimum: 0, maximum: 300 }
