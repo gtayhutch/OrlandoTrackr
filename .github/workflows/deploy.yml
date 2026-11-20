@@ -1,0 +1,91 @@
+name: Deploy
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  release:
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/staging' &&
+       vars.STAGING_DEPLOY_ENABLED == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/production' &&
+       vars.PRODUCTION_DEPLOY_ENABLED == 'true')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: ${{ github.ref_name }}
+    concurrency:
+      group: deploy-${{ github.ref_name }}
+      cancel-in-progress: false
+    env:
+      RELEASE_TARGET: ${{ github.ref_name }}
+      RELEASE_REVISION: ${{ github.sha }}
+      WRANGLER_CONFIG: apps/web/build/server/wrangler.json
+      CLOUDFLARE_ACCOUNT_ID: 9fe808d792b2aa8f095351f40b89c3eb
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - name: Confirm the requested commit passed all production checks
+        if: github.ref_name == 'production'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_count="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow verify.yml \
+            --branch production --event push --commit "$RELEASE_REVISION" --status success \
+            --json headSha --jq 'length')"
+          test "$run_count" -gt 0
+      - name: Check out the verified commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      - name: Build and check the named target
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_REVISION"
+          CLOUDFLARE_ENV="$RELEASE_TARGET" pnpm --dir apps/web build
+          node scripts/prepare-release.mjs "$RELEASE_TARGET" "$RELEASE_REVISION"
+          pnpm exec wrangler deploy --config "$WRANGLER_CONFIG" --dry-run
+      - name: Check release prerequisites
+        env:
+          ACCESS_CLIENT_ID: ${{ secrets.ACCESS_CLIENT_ID }}
+          ACCESS_CLIENT_SECRET: ${{ secrets.ACCESS_CLIENT_SECRET }}
+          MIGRATION_TOKEN: ${{ secrets.CLOUDFLARE_MIGRATION_TOKEN }}
+          DEPLOY_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$MIGRATION_TOKEN" && test -n "$DEPLOY_TOKEN"
+          test "$MIGRATION_TOKEN" != "$DEPLOY_TOKEN"
+          if [[ "$RELEASE_TARGET" == staging ]]; then
+            test -n "$ACCESS_CLIENT_ID" && test -n "$ACCESS_CLIENT_SECRET"
+            node scripts/release-smoke.mjs "$RELEASE_TARGET" "$RELEASE_REVISION" access-only
+          fi
+      - name: Rehearse migrations on isolated local D1
+        run: |
+          pnpm exec wrangler d1 migrations apply PARK_DATA --config "$WRANGLER_CONFIG" \
+            --local --persist-to "$RUNNER_TEMP/orlandotrackr-migrations" --force
+      - name: List and apply migrations to the hosted target
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_MIGRATION_TOKEN }}
+        run: |
+          set -euo pipefail
+          pnpm exec wrangler d1 migrations list PARK_DATA --config "$WRANGLER_CONFIG" --remote
+          pnpm exec wrangler d1 migrations apply PARK_DATA --config "$WRANGLER_CONFIG" --remote --force
+      - name: Deploy verified Worker and Container
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
+        run: pnpm exec wrangler deploy --config "$WRANGLER_CONFIG"
+      - name: Verify the exact Axum revision and wait dashboard
+        env:
+          ACCESS_CLIENT_ID: ${{ secrets.ACCESS_CLIENT_ID }}
+          ACCESS_CLIENT_SECRET: ${{ secrets.ACCESS_CLIENT_SECRET }}
+        run: node scripts/release-smoke.mjs "$RELEASE_TARGET" "$RELEASE_REVISION"

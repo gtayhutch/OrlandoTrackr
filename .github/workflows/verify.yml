@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: verify-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/staging' }}
 
 jobs:
   verify:
@@ -82,3 +82,13 @@ jobs:
           languages: javascript-typescript,rust
           build-mode: none
       - uses: github/codeql-action/analyze@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4
+
+  release-staging:
+    needs: [verify, audit, secret-scan, codeql]
+    permissions:
+      actions: read
+      contents: read
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/staging' &&
+      vars.STAGING_DEPLOY_ENABLED == 'true'
+    uses: ./.github/workflows/deploy.yml
