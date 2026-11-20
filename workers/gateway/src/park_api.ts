@@ -9,5 +9,6 @@ export class ParkApi extends Container {
 }
 
 ParkApi.outboundByHost = {
-  'park-data.internal': (request, env) => readPublicParkWaits(request, env.PARK_DATA),
+  'park-data.internal': (request, env) =>
+    readPublicParkWaits(request, env.PARK_DATA, env.WAIT_DATA_SOURCE),
 };

@@ -1,12 +1,16 @@
-/** Reads the synthetic D1 view through the private container intercept. */
+import { liveSource, readLiveWaits } from './live_wait_data';
+
+/** Reads the configured D1 view through the private container intercept. */
 export async function readPublicParkWaits(
   request: Request,
   database: D1Database,
+  source?: string,
 ): Promise<Response> {
   const url = new URL(request.url);
   if (url.pathname !== '/park-waits' || url.search || request.method !== 'GET') {
     return new Response(null, { status: 404 });
   }
+  if (source === liveSource) return readLiveWaits(database, Date.now());
   const [parks, rides] = await Promise.all([
     database
       .prepare(
