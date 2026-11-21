@@ -39,7 +39,7 @@ function parseLiveMetadata(value: Record<string, unknown>): WaitSnapshot['live']
   const { source, freshness, updatedAt } = value;
   if (
     Object.keys(value).some((key) => !allowed.includes(key)) ||
-    source !== 'themeparks-wiki' ||
+    (source !== 'themeparks-wiki' && source !== 'staging-fixture') ||
     (freshness !== 'current' &&
       freshness !== 'cached' &&
       freshness !== 'unavailable') ||
@@ -51,7 +51,7 @@ function parseLiveMetadata(value: Record<string, unknown>): WaitSnapshot['live']
   ) {
     throw new Error('Invalid live wait metadata');
   }
-  return { freshness, updatedAt: updatedAt ?? null };
+  return { source, freshness, updatedAt: updatedAt ?? null };
 }
 
 /** Validates the public server response before it reaches a route loader. */

@@ -365,7 +365,7 @@ export default function Dashboard(): ReactNode {
         </section>
 
         <footer className={styles.footer}>
-          {live ? (
+          {live?.source === 'themeparks-wiki' ? (
             <a href="https://www.themeparks.wiki/">Powered by ThemeParks.wiki</a>
           ) : (
             <span>OrlandoTrackr · Synthetic wait-time snapshot</span>

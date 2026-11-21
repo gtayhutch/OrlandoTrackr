@@ -1,4 +1,5 @@
 import { liveSource, readLiveWaits } from './live_wait_data';
+import { stagingSource } from './staging_feed';
 
 /** Reads the configured D1 view through the private container intercept. */
 export async function readPublicParkWaits(
@@ -10,7 +11,9 @@ export async function readPublicParkWaits(
   if (url.pathname !== '/park-waits' || url.search || request.method !== 'GET') {
     return new Response(null, { status: 404 });
   }
-  if (source === liveSource) return readLiveWaits(database, Date.now());
+  if (source === liveSource || source === stagingSource) {
+    return readLiveWaits(database, Date.now(), source);
+  }
   const [parks, rides] = await Promise.all([
     database
       .prepare(

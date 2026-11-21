@@ -77,12 +77,17 @@ if (mode !== 'access-only') {
   assert.match(document, /Parks at a glance/);
   if (staging) {
     assert.match(document, /Staging · /);
-    const waits = await request('/api/v1/park-waits', headers);
-    assert.equal(waits.status, 200);
-    const { data } = await waits.json();
-    assert(
-      data.parks.length > 0 && data.rides.length > 0,
-      'Staging fixtures are missing.',
-    );
+    const fixtureDeadline = Date.now() + 11 * 60_000;
+    let fixtureReady = false;
+    do {
+      const waits = await request('/api/v1/park-waits', headers);
+      assert.equal(waits.status, 200);
+      const { data } = await waits.json();
+      assert.equal(data.source, 'staging-fixture');
+      assert.equal(data.parks.length, 4);
+      fixtureReady = data.rides.length === 16;
+      if (!fixtureReady) await setTimeout(30_000);
+    } while (!fixtureReady && Date.now() < fixtureDeadline);
+    assert(fixtureReady, 'The scheduled staging feed did not load its 16 fixtures.');
   }
 }

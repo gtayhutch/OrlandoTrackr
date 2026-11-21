@@ -33,7 +33,7 @@
     "staging": {
       "name": "orlandotrackr-staging",
       "account_id": "9fe808d792b2aa8f095351f40b89c3eb",
-      "vars": { "WAIT_DATA_SOURCE": "sample", "SHOW_STAGING_LABEL": "true" },
+      "vars": { "WAIT_DATA_SOURCE": "staging-fixture", "SHOW_STAGING_LABEL": "true" },
       "containers": [
         {
           "name": "orlandotrackr-staging-parkapi",

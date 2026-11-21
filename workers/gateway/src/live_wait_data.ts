@@ -1,5 +1,6 @@
 import { destinations, maxRidesPerDestination } from './theme_parks';
 import type { LiveRide } from './theme_parks';
+import { stagingSource } from './staging_feed';
 
 const HOUR_MS = 60 * 60_000;
 const FRESHNESS_WINDOW_MS = 15 * 60_000;
@@ -127,6 +128,7 @@ export async function expireWaitHistory(
 export async function readLiveWaits(
   database: D1Database,
   now: number,
+  source: typeof liveSource | typeof stagingSource = liveSource,
 ): Promise<Response> {
   const cutoff = now - CACHE_WINDOW_MS;
   const [pollResult, rides] = await database.batch<Poll | StoredRide>([
@@ -161,7 +163,7 @@ export async function readLiveWaits(
   return Response.json({
     parks: destinations.map(({ id, name, locality }) => ({ id, name, locality })),
     rides: rides.results,
-    source: liveSource,
+    source,
     freshness:
       rides.results.length === 0 ? 'unavailable' : fresh ? 'current' : 'cached',
     updatedAt: visible

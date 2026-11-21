@@ -94,7 +94,7 @@ describe('wait response schema', () => {
     expect(parseWaitSnapshot({ data: { ...live, rides, updatedAt: 42 } })).toEqual({
       parks: PARKS,
       rides,
-      live: { freshness: 'cached', updatedAt: 42 },
+      live: { source: 'themeparks-wiki', freshness: 'cached', updatedAt: 42 },
     });
   });
 
@@ -102,7 +102,11 @@ describe('wait response schema', () => {
     const snapshot = parseWaitSnapshot({
       data: { ...live, freshness: 'unavailable', rides: [] },
     });
-    expect(snapshot.live).toEqual({ freshness: 'unavailable', updatedAt: null });
+    expect(snapshot.live).toEqual({
+      source: 'themeparks-wiki',
+      freshness: 'unavailable',
+      updatedAt: null,
+    });
   });
 
   it.each([

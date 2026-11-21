@@ -19,6 +19,7 @@ export interface WaitSnapshot {
   parks: Park[];
   rides: Ride[];
   live?: {
+    source: 'themeparks-wiki' | 'staging-fixture';
     freshness: 'current' | 'cached' | 'unavailable';
     updatedAt: number | null;
   };
