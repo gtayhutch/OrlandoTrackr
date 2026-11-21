@@ -41,6 +41,21 @@ const freshnessLabels = {
   cached: 'Cached waits',
   unavailable: 'Waiting for updates',
 };
+const SHORT_WAIT_LIMIT_MINUTES = 30;
+const LONG_WAIT_START_MINUTES = 60;
+const waitBandLabels = {
+  short: 'Short wait',
+  moderate: 'Moderate wait',
+  long: 'Long wait',
+  unavailable: 'Unavailable',
+} as const;
+
+function waitBand(minutes: number | null): keyof typeof waitBandLabels {
+  if (minutes === null) return 'unavailable';
+  if (minutes < SHORT_WAIT_LIMIT_MINUTES) return 'short';
+  if (minutes < LONG_WAIT_START_MINUTES) return 'moderate';
+  return 'long';
+}
 
 interface ParkSummary extends Park {
   average: number | null;
@@ -235,7 +250,6 @@ export default function Dashboard(): ReactNode {
                 <a
                   className={styles.park}
                   key={park.id}
-                  data-park={park.id}
                   href={`${parkPath(park.id)}#ride-board`}
                   aria-current={filters.park === park.id ? 'true' : undefined}
                 >
@@ -330,31 +344,32 @@ export default function Dashboard(): ReactNode {
               <p className={styles.empty}>No rides match these filters.</p>
             ) : (
               <ul className={styles.rides} aria-label="Ride waits">
-                {rides.map((ride) => (
-                  <li key={ride.id}>
-                    <span className={styles['ride-icon']}>
-                      <RollerCoaster size={19} aria-hidden="true" />
-                    </span>
-                    <div className={styles['ride-name']}>
-                      <strong>{ride.name}</strong>
-                      <span>
-                        {parkNames.get(ride.parkId)} · {ride.kind}
+                {rides.map((ride) => {
+                  const band = waitBand(ride.minutes);
+                  return (
+                    <li key={ride.id}>
+                      <span className={styles['ride-icon']}>
+                        <RollerCoaster size={19} aria-hidden="true" />
                       </span>
-                    </div>
-                    <span
-                      className={styles.wait}
-                      data-unavailable={ride.minutes === null || undefined}
-                    >
-                      {ride.minutes === null ? (
-                        'Unavailable'
-                      ) : (
-                        <>
-                          {ride.minutes} <small>min</small>
-                        </>
-                      )}
-                    </span>
-                  </li>
-                ))}
+                      <div className={styles['ride-name']}>
+                        <strong>{ride.name}</strong>
+                        <span>
+                          {parkNames.get(ride.parkId)} · {ride.kind}
+                        </span>
+                      </div>
+                      <div className={styles['ride-result']}>
+                        {ride.minutes !== null && (
+                          <span className={styles.wait}>
+                            {minutesFormat.format(ride.minutes)} <small>min</small>
+                          </span>
+                        )}
+                        <span className={styles['wait-status']} data-band={band}>
+                          {waitBandLabels[band]}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

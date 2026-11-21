@@ -17,10 +17,34 @@ test('keeps styles applied after the Vite client takes over', async ({ page }) =
       ),
     )
     .toBe(true);
-  await expect(page.locator('html')).not.toHaveCSS(
+  await expect(page.locator('html')).toHaveCSS(
     'background-color',
-    'rgba(0, 0, 0, 0)',
+    'rgb(247, 242, 232)',
   );
+});
+
+test('identifies every wait band in text and keeps the ride board accessible', async ({
+  page,
+}) => {
+  await page.goto('/#ride-board');
+  await expect(page.locator('html')).toHaveCSS(
+    'background-color',
+    'rgb(247, 242, 232)',
+  );
+  const rides = page.getByRole('list', { name: 'Ride waits' }).getByRole('listitem');
+  const cases = [
+    { ride: 'Pirates of the Caribbean', label: 'Short wait' },
+    { ride: 'Space Mountain', label: 'Moderate wait' },
+    { ride: 'Hagrid’s Motorbike Adventure', label: 'Long wait' },
+    { ride: 'Kraken', label: 'Unavailable' },
+  ];
+  for (const { ride, label } of cases) {
+    await expect(
+      rides.filter({ hasText: ride }).getByText(label, { exact: true }),
+    ).toBeVisible();
+  }
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations).toEqual([]);
 });
 
 test('renders seeded park waits and updates the board by park', async ({ page }) => {
@@ -61,9 +85,9 @@ test('serves the public board without JavaScript', async ({ browser, baseURL }) 
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto(baseURL + '/?park=legoland&availability=open');
-  await expect(
-    page.getByRole('list', { name: 'Ride waits' }).getByRole('listitem'),
-  ).toHaveCount(3);
+  const rides = page.getByRole('list', { name: 'Ride waits' }).getByRole('listitem');
+  await expect(rides).toHaveCount(3);
+  await expect(rides.getByText('Short wait', { exact: true })).toHaveCount(3);
   await context.close();
 });
 
