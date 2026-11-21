@@ -1,16 +1,23 @@
 :root {
-  color-scheme: dark;
-  --background: #0b131d;
-  --surface: #111e2c;
-  --surface-raised: #182939;
-  --outline: #2b4053;
-  --text: #f2f5f9;
-  --muted: #b1c1d0;
-  --accent: #5ff2e2;
-  --accent-ink: #092421;
-  --amber: #ffd083;
-  --violet: #ccb6ff;
-  --blue: #9bd7ff;
+  color-scheme: light;
+  --background: #f7f2e8;
+  --surface: #fff;
+  --surface-raised: #f0ece3;
+  --outline: #d9d2c5;
+  --control-outline: #788389;
+  --text: #192a33;
+  --muted: #4f5f65;
+  --action: #244f55;
+  --on-action: #fff;
+  --terracotta: #a44830;
+  --short-text: #285740;
+  --short-fill: #e1ebdd;
+  --moderate-text: #694a13;
+  --moderate-fill: #f3e8ca;
+  --long-text: #843d32;
+  --long-fill: #f3e2db;
+  --unavailable-text: #50565a;
+  --unavailable-fill: #ece9e3;
   --radius: 1rem;
   --space: 1rem;
   --page-width: 78rem;
@@ -46,8 +53,8 @@ select {
 a:focus-visible,
 button:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
+  outline: 2px solid var(--action);
+  outline-offset: 3px;
 }
 
 .skip-link {
@@ -55,8 +62,8 @@ select:focus-visible {
   inset: 0 auto auto 1rem;
   z-index: 10;
   padding: 0.75rem 1rem;
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--action);
+  color: var(--on-action);
   transform: translateY(-120%);
 }
 .skip-link:focus {
@@ -72,6 +79,6 @@ select:focus-visible {
   color: var(--muted);
 }
 .route-error a {
-  color: var(--accent);
+  color: var(--action);
   text-decoration: underline;
 }
