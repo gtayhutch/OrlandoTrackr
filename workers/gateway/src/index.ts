@@ -6,6 +6,7 @@ import { ingestWaits } from './ingest_waits';
 import { liveSource } from './live_wait_data';
 import { applySecurityHeaders } from './security_headers';
 import { readPublicParkWaits } from './park_data';
+import { stagingFeed, stagingSource } from './staging_feed';
 
 export { ContainerProxy } from '@cloudflare/containers';
 export { ParkApi } from './park_api';
@@ -100,7 +101,10 @@ export default {
     return new Response(response.body, { status: response.status, headers });
   },
   async scheduled(controller: ScheduledController, env: Env): Promise<void> {
-    if (env.WAIT_DATA_SOURCE !== liveSource) return;
-    await ingestWaits(env.PARK_DATA, controller.scheduledTime);
+    const now = controller.scheduledTime;
+    if (env.WAIT_DATA_SOURCE === liveSource) await ingestWaits(env.PARK_DATA, now);
+    if (env.WAIT_DATA_SOURCE === stagingSource && env.SHOW_STAGING_LABEL === 'true') {
+      await ingestWaits(env.PARK_DATA, now, stagingFeed(now));
+    }
   },
 } satisfies ExportedHandler<Env>;

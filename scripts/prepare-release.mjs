@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 const targets = {
   staging: {
     database: '504f9cf8-a147-48d4-bcaf-d6c7c4923970',
-    vars: { WAIT_DATA_SOURCE: 'sample', SHOW_STAGING_LABEL: 'true' },
+    vars: { WAIT_DATA_SOURCE: 'staging-fixture', SHOW_STAGING_LABEL: 'true' },
   },
   production: {
     database: '5cdbcff8-0fb6-49ed-aa9c-d723414348f8',

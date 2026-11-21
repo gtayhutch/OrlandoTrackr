@@ -6,7 +6,7 @@ paths:
   /api/v1/park-waits:
     get:
       operationId: getParkWaits
-      summary: Read the local sample park and attraction snapshot
+      summary: Read the local or staging sample park and attraction snapshot
       description: Available in sample environments. The live website reads through its server.
       responses:
         '200':
@@ -29,6 +29,9 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/Ride'
+                      source: { enum: [staging-fixture] }
+                      freshness: { enum: [current, cached, unavailable] }
+                      updatedAt: { type: integer, minimum: 0 }
         '400':
           description: Unexpected query parameters
         '404':
@@ -53,5 +56,5 @@ components:
         id: { type: string }
         parkId: { type: string }
         name: { type: string }
-        kind: { enum: [Thrill, Family, Show] }
+        kind: { enum: [Thrill, Family, Show, Ride] }
         minutes: { type: [integer, 'null'], minimum: 0, maximum: 300 }
