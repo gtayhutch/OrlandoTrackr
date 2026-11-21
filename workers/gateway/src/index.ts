@@ -7,6 +7,7 @@ import { liveSource } from './live_wait_data';
 import { applySecurityHeaders } from './security_headers';
 import { readPublicParkWaits } from './park_data';
 import { stagingFeed, stagingSource } from './staging_feed';
+import { crawlerResponse, isIndexablePage } from './indexing';
 
 export { ContainerProxy } from '@cloudflare/containers';
 export { ParkApi } from './park_api';
@@ -17,6 +18,7 @@ interface Env {
   LOCAL_SAMPLE_PREVIEW?: string;
   WAIT_DATA_SOURCE?: string;
   SHOW_STAGING_LABEL?: string;
+  PUBLIC_INDEXING?: string;
 }
 
 async function fetchWaits(request: Request, env: Env): Promise<Response> {
@@ -66,9 +68,15 @@ export default {
     const url = new URL(request.url);
     const nonce = crypto.randomUUID().replaceAll('-', '');
     let response: Response;
+    const crawl =
+      request.method === 'GET' && !url.search
+        ? crawlerResponse(url, env.PUBLIC_INDEXING)
+        : null;
     const sampleApi =
       url.pathname === '/api/v1/park-waits' && env.WAIT_DATA_SOURCE !== liveSource;
-    if (url.pathname === '/health/live') {
+    if (crawl) {
+      response = crawl;
+    } else if (url.pathname === '/health/live') {
       const headers = { 'Cache-Control': 'no-store', Allow: 'GET, HEAD' };
       if (request.method !== 'GET' && request.method !== 'HEAD') {
         response = new Response(null, { status: 405, headers });
@@ -81,7 +89,7 @@ export default {
       }
     } else if (sampleApi || url.pathname === '/health') {
       response = await fetchWaits(request, env);
-    } else if (url.pathname === '/') {
+    } else if (url.pathname === '/' || /^\/parks\/[^/]+$/.test(url.pathname)) {
       const context = new RouterContextProvider();
       context.set(waitRequestContext, {
         nonce,
@@ -97,7 +105,11 @@ export default {
       });
     }
     const headers = new Headers(response.headers);
-    applySecurityHeaders(headers, nonce);
+    applySecurityHeaders(
+      headers,
+      nonce,
+      response.ok && isIndexablePage(url, env.PUBLIC_INDEXING),
+    );
     return new Response(response.body, { status: response.status, headers });
   },
   async scheduled(controller: ScheduledController, env: Env): Promise<void> {

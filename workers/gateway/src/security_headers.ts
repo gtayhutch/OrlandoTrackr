@@ -1,5 +1,9 @@
 /** Adds the response header baseline for public browser and API traffic. */
-export function applySecurityHeaders(headers: Headers, nonce: string): void {
+export function applySecurityHeaders(
+  headers: Headers,
+  nonce: string,
+  indexable = false,
+): void {
   headers.set(
     'Content-Security-Policy',
     "default-src 'self'; " +
@@ -15,5 +19,5 @@ export function applySecurityHeaders(headers: Headers, nonce: string): void {
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  headers.set('X-Robots-Tag', 'noindex, nofollow');
+  if (!indexable) headers.set('X-Robots-Tag', 'noindex, nofollow');
 }

@@ -9,7 +9,7 @@ const targets = {
   },
   production: {
     database: '5cdbcff8-0fb6-49ed-aa9c-d723414348f8',
-    vars: { WAIT_DATA_SOURCE: 'themeparks-wiki' },
+    vars: { WAIT_DATA_SOURCE: 'themeparks-wiki', PUBLIC_INDEXING: 'true' },
   },
 };
 const [target, revision] = process.argv.slice(2);
