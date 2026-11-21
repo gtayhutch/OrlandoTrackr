@@ -59,7 +59,7 @@
     "production": {
       "name": "orlandotrackr-production",
       "account_id": "9fe808d792b2aa8f095351f40b89c3eb",
-      "vars": { "WAIT_DATA_SOURCE": "themeparks-wiki" },
+      "vars": { "WAIT_DATA_SOURCE": "themeparks-wiki", "PUBLIC_INDEXING": "true" },
       "containers": [
         {
           "name": "orlandotrackr-production-parkapi",

@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 /** Runs colocated tests for the waits feature and gateway code. */
 export default defineConfig({
+  resolve: { tsconfigPaths: true },
   test: {
     include: ['apps/web/app/**/*.test.ts', 'workers/gateway/src/**/*.test.ts'],
     coverage: {

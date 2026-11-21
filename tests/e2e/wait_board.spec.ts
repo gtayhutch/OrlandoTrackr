@@ -67,6 +67,23 @@ test('serves the public board without JavaScript', async ({ browser, baseURL }) 
   await context.close();
 });
 
+test('server-renders a canonical park page without allowing preview indexing', async ({
+  request,
+}) => {
+  const page = await request.get('/parks/seaworld');
+  expect(page.status()).toBe(200);
+  expect(page.headers()['x-robots-tag']).toContain('noindex');
+  const html = await page.text();
+  expect(html).toContain('SeaWorld Orlando wait times | OrlandoTrackr');
+  expect(html).toContain(
+    'rel="canonical" href="https://orlandotrackr.com/parks/seaworld"',
+  );
+
+  expect((await request.get('/parks/unknown')).status()).toBe(404);
+  expect((await request.get('/sitemap.xml')).status()).toBe(404);
+  expect(await (await request.get('/robots.txt')).text()).toContain('Disallow: /');
+});
+
 test('serves Worker liveness with a bounded request contract', async ({ request }) => {
   const live = await request.get('/health/live');
   expect(live.status()).toBe(200);

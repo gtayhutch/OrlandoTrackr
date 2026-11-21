@@ -1,4 +1,7 @@
-import { index } from '@react-router/dev/routes';
+import { index, route } from '@react-router/dev/routes';
 
-/** Defines the public landing route. */
-export default [index('routes/dashboard.tsx')];
+/** Defines the public overview and park wait pages. */
+export default [
+  index('routes/dashboard.tsx'),
+  route('parks/:parkId', 'routes/dashboard.tsx', { id: 'park-dashboard' }),
+];
