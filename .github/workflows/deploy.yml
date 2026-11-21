@@ -9,12 +9,88 @@ permissions:
   contents: read
 
 jobs:
+  release-staging-worker:
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/staging' &&
+      vars.STAGING_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: staging
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    env:
+      RELEASE_REVISION: ${{ github.sha }}
+      BACKEND_REVISION: ${{ vars.STAGING_BACKEND_REVISION }}
+      WRANGLER_CONFIG: apps/web/build/server/wrangler.json
+      CLOUDFLARE_ACCOUNT_ID: 007bc456dd6bf3d99bfa76f04a3eb165
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - name: Confirm the manually requested staging commit passed verification
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_count="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow verify.yml \
+            --branch staging --event push --commit "$RELEASE_REVISION" \
+            --json conclusion --jq '[.[] | select(.conclusion == "success")] | length')"
+          test "$run_count" -gt 0
+      - name: Check out the verified commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require the owner-released Axum and D1 baseline
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_REVISION"
+          if ! [[ "$BACKEND_REVISION" =~ ^[0-9a-f]{40}$ ]] ||
+            ! git merge-base --is-ancestor "$BACKEND_REVISION" "$RELEASE_REVISION"; then
+            echo '::error::Set STAGING_BACKEND_REVISION to an owner-released staging commit before enabling automatic deploys.'
+            exit 1
+          fi
+          if ! git diff --quiet "$BACKEND_REVISION" "$RELEASE_REVISION" -- \
+            Dockerfile .dockerignore Cargo.toml Cargo.lock rust-toolchain.toml crates services \
+            workers/gateway/migrations apps/web/wrangler.jsonc; then
+            echo '::error::Axum, D1 migrations, or Wrangler configuration changed. Run the owner staging release and update STAGING_BACKEND_REVISION.'
+            exit 1
+          fi
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      - name: Build the staging Worker and check its target
+        run: |
+          set -euo pipefail
+          CLOUDFLARE_ENV=staging pnpm --dir apps/web build
+          node scripts/prepare-release.mjs staging "$RELEASE_REVISION"
+          pnpm exec wrangler deploy --config "$WRANGLER_CONFIG" --containers-rollout=none --dry-run
+      - name: Verify the current staging baseline and Access
+        env:
+          ACCESS_CLIENT_ID: ${{ secrets.ACCESS_CLIENT_ID }}
+          ACCESS_CLIENT_SECRET: ${{ secrets.ACCESS_CLIENT_SECRET }}
+        run: node scripts/release-smoke.mjs staging "$BACKEND_REVISION"
+      - name: Deploy the verified staging Worker with the existing Container
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_WORKER_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          pnpm exec wrangler deploy --config "$WRANGLER_CONFIG" --containers-rollout=none --tag "$RELEASE_REVISION"
+      - name: Verify the staged dashboard and its Axum revision
+        env:
+          ACCESS_CLIENT_ID: ${{ secrets.ACCESS_CLIENT_ID }}
+          ACCESS_CLIENT_SECRET: ${{ secrets.ACCESS_CLIENT_SECRET }}
+        run: node scripts/release-smoke.mjs staging "$BACKEND_REVISION"
+
   release:
     if: >-
-      (github.event_name == 'push' && github.ref == 'refs/heads/staging' &&
-       vars.STAGING_DEPLOY_ENABLED == 'true') ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/production' &&
-       vars.PRODUCTION_DEPLOY_ENABLED == 'true')
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/production' &&
+      vars.PRODUCTION_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: ${{ github.ref_name }}
@@ -25,7 +101,7 @@ jobs:
       RELEASE_TARGET: ${{ github.ref_name }}
       RELEASE_REVISION: ${{ github.sha }}
       WRANGLER_CONFIG: apps/web/build/server/wrangler.json
-      CLOUDFLARE_ACCOUNT_ID: 9fe808d792b2aa8f095351f40b89c3eb
+      CLOUDFLARE_ACCOUNT_ID: 007bc456dd6bf3d99bfa76f04a3eb165
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - name: Confirm the requested commit passed all production checks

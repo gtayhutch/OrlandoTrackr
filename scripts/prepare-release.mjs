@@ -4,11 +4,13 @@ import { resolve } from 'node:path';
 
 const targets = {
   staging: {
-    database: '504f9cf8-a147-48d4-bcaf-d6c7c4923970',
+    database: '2e51b4d6-1854-416b-ba70-7c7754be50e8',
+    workersDev: true,
     vars: { WAIT_DATA_SOURCE: 'staging-fixture', SHOW_STAGING_LABEL: 'true' },
   },
   production: {
-    database: '5cdbcff8-0fb6-49ed-aa9c-d723414348f8',
+    database: '3c3ecb9d-424c-43fc-97b9-1cc43a27635a',
+    workersDev: false,
     vars: { WAIT_DATA_SOURCE: 'themeparks-wiki', PUBLIC_INDEXING: 'true' },
   },
 };
@@ -19,10 +21,10 @@ assert.match(revision ?? '', /^[0-9a-f]{40}$/, 'A full release commit is require
 const configDir = 'apps/web/build/server';
 const config = JSON.parse(await readFile(`${configDir}/wrangler.json`, 'utf8'));
 const name = `orlandotrackr-${target}`;
-const { database, vars } = targets[target];
+const { database, vars, workersDev } = targets[target];
 assert.equal(config.name, name, 'Worker target does not match.');
-assert.equal(config.account_id, '9fe808d792b2aa8f095351f40b89c3eb');
-assert.equal(config.workers_dev, false);
+assert.equal(config.account_id, '007bc456dd6bf3d99bfa76f04a3eb165');
+assert.equal(config.workers_dev, workersDev);
 assert.equal(config.preview_urls, false);
 assert.equal(config.route, undefined, 'Manage hostnames outside the release workflow.');
 assert.equal(config.routes?.length ?? 0, 0);
