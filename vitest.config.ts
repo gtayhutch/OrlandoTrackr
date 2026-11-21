@@ -4,7 +4,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
-    include: ['apps/web/app/**/*.test.ts', 'workers/gateway/src/**/*.test.ts'],
+    include: ['apps/web/app/**/*.test.ts', 'workers/*/src/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       include: ['apps/web/app/features/waits/*.ts'],

@@ -25,7 +25,7 @@ jobs:
       RELEASE_TARGET: ${{ github.ref_name }}
       RELEASE_REVISION: ${{ github.sha }}
       WRANGLER_CONFIG: apps/web/build/server/wrangler.json
-      CLOUDFLARE_ACCOUNT_ID: 9fe808d792b2aa8f095351f40b89c3eb
+      CLOUDFLARE_ACCOUNT_ID: 007bc456dd6bf3d99bfa76f04a3eb165
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - name: Confirm the requested commit passed all production checks
