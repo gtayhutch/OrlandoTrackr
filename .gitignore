@@ -17,6 +17,7 @@ node_modules/
 .vite/
 .react-router/
 .gradle/
+.kotlin/
 target/
 build/
 dist/

@@ -1,6 +1,7 @@
 FROM rust:1.97.1-bookworm@sha256:0e2bcaef56d041a486784e54104a81aebe0da44bd03019bd70bc0401e42e4a97 AS builder
 WORKDIR /source
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY crates/planner ./crates/planner
 COPY services/api ./services/api
 RUN cargo build --release --locked --package orlandotrackr-api
 

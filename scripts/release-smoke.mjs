@@ -10,8 +10,8 @@ const origin = staging
   ? 'https://staging.orlandotrackr.com'
   : 'https://orlandotrackr.com';
 
-function request(path, headers) {
-  return fetch(new URL(path, origin), {
+function request(path, headers, base = origin) {
+  return fetch(new URL(path, base), {
     headers,
     redirect: 'manual',
     signal: AbortSignal.timeout(15_000),
@@ -19,17 +19,21 @@ function request(path, headers) {
 }
 
 if (staging) {
-  for (const path of ['/', '/health/live', '/images/coaster-at-dusk.webp']) {
-    const response = await request(path);
-    const redirect = response.headers.get('location');
-    assert(
-      response.status === 403 ||
-        (response.status === 302 &&
-          redirect &&
-          new URL(redirect, origin).pathname.startsWith('/cdn-cgi/access/')),
-      `Staging Access must deny an anonymous request to ${path}.`,
-    );
-    await response.body?.cancel();
+  const originWorker = 'https://orlandotrackr-staging.orlandotrackr.workers.dev';
+  for (const base of [origin, originWorker]) {
+    for (const path of ['/', '/health/live', '/images/coaster-at-dusk.webp']) {
+      const response = await request(path, undefined, base);
+      const redirect = response.headers.get('location');
+      assert(
+        response.status === 401 ||
+          response.status === 403 ||
+          (response.status === 302 &&
+            redirect &&
+            new URL(redirect, base).pathname.startsWith('/cdn-cgi/access/')),
+        `Staging Access must deny an anonymous request to ${base}${path}.`,
+      );
+      await response.body?.cancel();
+    }
   }
 }
 

@@ -32,8 +32,10 @@
   "env": {
     "staging": {
       "name": "orlandotrackr-staging",
-      "account_id": "9fe808d792b2aa8f095351f40b89c3eb",
+      "account_id": "007bc456dd6bf3d99bfa76f04a3eb165",
+      "workers_dev": true,
       "vars": { "WAIT_DATA_SOURCE": "staging-fixture", "SHOW_STAGING_LABEL": "true" },
+      "triggers": { "crons": ["*/5 * * * *"] },
       "containers": [
         {
           "name": "orlandotrackr-staging-parkapi",
@@ -50,7 +52,7 @@
         {
           "binding": "PARK_DATA",
           "database_name": "orlandotrackr-staging",
-          "database_id": "504f9cf8-a147-48d4-bcaf-d6c7c4923970",
+          "database_id": "2e51b4d6-1854-416b-ba70-7c7754be50e8",
           "migrations_dir": "../../workers/gateway/migrations",
           "remote": false,
         },
@@ -58,8 +60,8 @@
     },
     "production": {
       "name": "orlandotrackr-production",
-      "account_id": "9fe808d792b2aa8f095351f40b89c3eb",
-      "vars": { "WAIT_DATA_SOURCE": "themeparks-wiki" },
+      "account_id": "007bc456dd6bf3d99bfa76f04a3eb165",
+      "vars": { "WAIT_DATA_SOURCE": "themeparks-wiki", "PUBLIC_INDEXING": "true" },
       "containers": [
         {
           "name": "orlandotrackr-production-parkapi",
@@ -76,7 +78,7 @@
         {
           "binding": "PARK_DATA",
           "database_name": "orlandotrackr-production",
-          "database_id": "5cdbcff8-0fb6-49ed-aa9c-d723414348f8",
+          "database_id": "3c3ecb9d-424c-43fc-97b9-1cc43a27635a",
           "migrations_dir": "../../workers/gateway/migrations",
           "remote": false,
         },

@@ -2,6 +2,11 @@
 !Cargo.toml
 !Cargo.lock
 !rust-toolchain.toml
+!crates/
+!crates/planner/
+!crates/planner/Cargo.toml
+!crates/planner/src/
+!crates/planner/src/**
 !services/
 !services/api/
 !services/api/Cargo.toml

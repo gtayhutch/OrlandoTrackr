@@ -18,6 +18,7 @@ import { parseWaitSnapshot } from '~/features/waits/wait_api.server';
 import { averageWait, filterRides, parseFilters } from '~/features/waits/waits';
 import type { Park, Ride, WaitFilters, WaitSnapshot } from '~/features/waits/waits';
 import { waitRequestContext } from '~/request_context';
+import { parkPath, publicOrigin } from '~/public_urls';
 import styles from './dashboard.module.css';
 
 const parksIcons = new Map([
@@ -40,6 +41,21 @@ const freshnessLabels = {
   cached: 'Cached waits',
   unavailable: 'Waiting for updates',
 };
+const SHORT_WAIT_LIMIT_MINUTES = 30;
+const LONG_WAIT_START_MINUTES = 60;
+const waitBandLabels = {
+  short: 'Short wait',
+  moderate: 'Moderate wait',
+  long: 'Long wait',
+  unavailable: 'Unavailable',
+} as const;
+
+function waitBand(minutes: number | null): keyof typeof waitBandLabels {
+  if (minutes === null) return 'unavailable';
+  if (minutes < SHORT_WAIT_LIMIT_MINUTES) return 'short';
+  if (minutes < LONG_WAIT_START_MINUTES) return 'moderate';
+  return 'long';
+}
 
 interface ParkSummary extends Park {
   average: number | null;
@@ -55,22 +71,39 @@ type DashboardData =
       totalRides: number;
       live?: WaitSnapshot['live'];
       staging: boolean;
+      park: Park | undefined;
     }
-  | { state: 'invalid' | 'unavailable' };
+  | { state: 'invalid' | 'unavailable' | 'not-found' };
 
 /** Supplies the page title and description for the public comparison route. */
-export const meta: MetaFunction = () => [
-  { title: 'OrlandoTrackr | Orlando theme park wait times' },
-  {
-    name: 'description',
-    content: 'Compare Orlando theme park waits and find a shorter line.',
-  },
-];
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
+  if (loaderData?.state !== 'ready') return [{ title: 'OrlandoTrackr | Park waits' }];
+  const park = loaderData.park;
+  return [
+    {
+      title: park
+        ? `${park.name} wait times | OrlandoTrackr`
+        : 'OrlandoTrackr | Orlando theme park wait times',
+    },
+    {
+      name: 'description',
+      content: park
+        ? `See attraction wait times at ${park.name} and when they were updated.`
+        : 'Compare Orlando theme park waits and find a shorter line.',
+    },
+    {
+      tagName: 'link',
+      rel: 'canonical',
+      href: publicOrigin + (park ? parkPath(park.id) : '/'),
+    },
+  ];
+};
 
 /** Loads and filters the server-rendered snapshot, including without JavaScript. */
 export async function loader({
   request,
   context,
+  params,
 }: LoaderFunctionArgs): Promise<ReturnType<typeof data<DashboardData>>> {
   let snapshot: WaitSnapshot;
   const waitContext = context.get(waitRequestContext);
@@ -81,7 +114,13 @@ export async function loader({
   } catch {
     return data({ state: 'unavailable' }, { status: 503 });
   }
-  const filters = parseFilters(new URL(request.url).searchParams, snapshot.parks);
+  const park = snapshot.parks.find(({ id }) => id === params.parkId);
+  if (params.parkId !== undefined && !park) {
+    return data({ state: 'not-found' }, { status: 404 });
+  }
+  const search = new URL(request.url).searchParams;
+  if (park && !search.has('park')) search.set('park', park.id);
+  const filters = parseFilters(search, snapshot.parks);
   if (!filters) return data({ state: 'invalid' }, { status: 400 });
   const summaries = snapshot.parks.map((park) => {
     const rides = snapshot.rides.filter((ride) => ride.parkId === park.id);
@@ -95,6 +134,7 @@ export async function loader({
     totalRides: snapshot.rides.length,
     live: snapshot.live,
     staging: waitContext.staging,
+    park,
   });
 }
 
@@ -107,12 +147,16 @@ export default function Dashboard(): ReactNode {
         <h1>
           {dashboard.state === 'invalid'
             ? 'Check your wait board filters'
-            : 'Wait times are unavailable'}
+            : dashboard.state === 'not-found'
+              ? 'Park not found'
+              : 'Wait times are unavailable'}
         </h1>
         <p>
           {dashboard.state === 'invalid'
             ? 'Choose a park and sort order from the wait board.'
-            : 'The park snapshot is temporarily unavailable.'}
+            : dashboard.state === 'not-found'
+              ? 'Choose a park from the wait board.'
+              : 'The park snapshot is temporarily unavailable.'}
         </p>
         <a href="/">Back to the wait board</a>
       </main>
@@ -168,7 +212,7 @@ export default function Dashboard(): ReactNode {
               <MapPin size={16} aria-hidden="true" /> Orlando, Florida
             </p>
             <h1 id="hero-title">
-              Orlando park
+              {dashboard.park?.name ?? 'Orlando park'}
               <br />
               <em>wait times.</em>
             </h1>
@@ -206,8 +250,7 @@ export default function Dashboard(): ReactNode {
                 <a
                   className={styles.park}
                   key={park.id}
-                  data-park={park.id}
-                  href={`/?${new URLSearchParams({ park: park.id })}#ride-board`}
+                  href={`${parkPath(park.id)}#ride-board`}
                   aria-current={filters.park === park.id ? 'true' : undefined}
                 >
                   <div className={styles['park-top']}>
@@ -301,31 +344,32 @@ export default function Dashboard(): ReactNode {
               <p className={styles.empty}>No rides match these filters.</p>
             ) : (
               <ul className={styles.rides} aria-label="Ride waits">
-                {rides.map((ride) => (
-                  <li key={ride.id}>
-                    <span className={styles['ride-icon']}>
-                      <RollerCoaster size={19} aria-hidden="true" />
-                    </span>
-                    <div className={styles['ride-name']}>
-                      <strong>{ride.name}</strong>
-                      <span>
-                        {parkNames.get(ride.parkId)} · {ride.kind}
+                {rides.map((ride) => {
+                  const band = waitBand(ride.minutes);
+                  return (
+                    <li key={ride.id}>
+                      <span className={styles['ride-icon']}>
+                        <RollerCoaster size={19} aria-hidden="true" />
                       </span>
-                    </div>
-                    <span
-                      className={styles.wait}
-                      data-unavailable={ride.minutes === null || undefined}
-                    >
-                      {ride.minutes === null ? (
-                        'Unavailable'
-                      ) : (
-                        <>
-                          {ride.minutes} <small>min</small>
-                        </>
-                      )}
-                    </span>
-                  </li>
-                ))}
+                      <div className={styles['ride-name']}>
+                        <strong>{ride.name}</strong>
+                        <span>
+                          {parkNames.get(ride.parkId)} · {ride.kind}
+                        </span>
+                      </div>
+                      <div className={styles['ride-result']}>
+                        {ride.minutes !== null && (
+                          <span className={styles.wait}>
+                            {minutesFormat.format(ride.minutes)} <small>min</small>
+                          </span>
+                        )}
+                        <span className={styles['wait-status']} data-band={band}>
+                          {waitBandLabels[band]}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
