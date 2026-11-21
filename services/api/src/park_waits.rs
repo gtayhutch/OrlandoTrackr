@@ -42,6 +42,7 @@ enum RideKind {
 #[serde(rename_all = "kebab-case")]
 enum WaitSource {
     ThemeparksWiki,
+    StagingFixture,
 }
 
 #[derive(Deserialize, Serialize)]

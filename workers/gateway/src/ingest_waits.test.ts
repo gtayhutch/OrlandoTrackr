@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getPlatformProxy } from 'wrangler';
 import type { PlatformProxy } from 'wrangler';
 import { ingestWaits } from './ingest_waits';
+import { stagingFeed, stagingSource } from './staging_feed';
 import { liveSource, readLiveWaits } from './live_wait_data';
 import { destinations, parseLiveRides } from './theme_parks';
 
@@ -163,5 +164,35 @@ describe('scheduled ingestion into local D1', () => {
     expect(retry).toHaveBeenCalledTimes(3);
     await ingestWaits(database, START + 3 * FIVE_MINUTES, retry);
     expect(retry).toHaveBeenCalledTimes(7);
+  });
+
+  it('cycles the staging provider through a healthy poll, outage, and recovery', async () => {
+    const healthy = Math.floor(START / (3 * FIVE_MINUTES)) * 3 * FIVE_MINUTES;
+    const outage = healthy + 2 * FIVE_MINUTES;
+    const recovery = outage + FIVE_MINUTES;
+    await ingestWaits(database, healthy, stagingFeed(healthy));
+    const current: { rides: unknown[] } = await (
+      await readLiveWaits(database, healthy, stagingSource)
+    ).json();
+    expect(current).toMatchObject({
+      source: stagingSource,
+      freshness: 'current',
+    });
+    expect(current.rides).toHaveLength(16);
+    await expect(ingestWaits(database, outage, stagingFeed(outage))).rejects.toThrow();
+    expect(await (await readLiveWaits(database, outage, stagingSource)).json()).toEqual(
+      {
+        ...current,
+        freshness: 'cached',
+      },
+    );
+    await ingestWaits(database, recovery, stagingFeed(recovery));
+    expect(
+      await (await readLiveWaits(database, recovery, stagingSource)).json(),
+    ).toMatchObject({
+      source: stagingSource,
+      freshness: 'current',
+      updatedAt: recovery,
+    });
   });
 });
